@@ -1,0 +1,4 @@
+- [x] Fix use_build_context_synchronously in lib/features/auth/login_tab.dart: Add if (mounted) checks in _login method before using context after await.
+- [x] Fix use_build_context_synchronously in lib/features/auth/signup_tab.dart: Add if (mounted) checks in _signup method before using context after await.
+- [x] Fix unused_element in lib/pages/dashboard_screen.dart: Use _onItemTapped method in AppDrawer onItemTapped callback instead of empty lambda.
+- [x] Run flutter analyze to verify all lint issues are resolved.
