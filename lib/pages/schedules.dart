@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class SchedulePage extends StatelessWidget {
-  const SchedulePage({super.key});
+  final ScrollController? scrollController;
+
+  const SchedulePage({super.key, this.scrollController});
 
   @override
   Widget build(BuildContext context) {

@@ -2,3 +2,4 @@
 - [x] Fix use_build_context_synchronously in lib/features/auth/signup_tab.dart: Add if (mounted) checks in _signup method before using context after await.
 - [x] Fix unused_element in lib/pages/dashboard_screen.dart: Use _onItemTapped method in AppDrawer onItemTapped callback instead of empty lambda.
 - [x] Run flutter analyze to verify all lint issues are resolved.
+- [x] Add responsive auto-hide bottom navigation bar: bottom nav for mobile (<600px width) with auto-hide on scroll in CoursesPage, drawer for tablet/web.

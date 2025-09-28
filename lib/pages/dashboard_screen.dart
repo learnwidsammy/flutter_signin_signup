@@ -41,18 +41,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = const [
-    CoursesPage(),
-    SchedulePage(),
-    ProgressPage(),
-    SettingsPage(),
+  final ScrollController _scrollController = ScrollController();
+  bool _isVisible = true;
+  final double _scrollThreshold = 10.0;
+  double _lastScrollOffset = 0.0;
+
+  final List<Widget Function(ScrollController?)> _pageBuilders = [
+    (controller) => CoursesPage(scrollController: controller),
+    (controller) => SchedulePage(scrollController: controller),
+    (controller) => ProgressPage(scrollController: controller),
+    (controller) => SettingsPage(scrollController: controller),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    final currentScroll = _scrollController.offset;
+
+    if (currentScroll > _lastScrollOffset + _scrollThreshold) {
+      // Scrolling down (hide)
+      if (_isVisible) {
+        setState(() => _isVisible = false);
+      }
+    } else if (currentScroll < _lastScrollOffset - _scrollThreshold) {
+      // Scrolling up (show)
+      if (!_isVisible) {
+        setState(() => _isVisible = true);
+      }
+    }
+    _lastScrollOffset = currentScroll;
+  }
+
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
+    if (index == 0) {
+      // Dashboard: just close drawer
+      Navigator.pop(context);
+    } else {
+      setState(() {
+        _selectedIndex = index - 1;
+      });
       Navigator.pop(context); // Close drawer
-    });
+    }
   }
 
   // Simple list of navigation items for the Drawer
@@ -78,6 +118,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             scaffoldBackgroundColor: const Color(0xFFF0F0F0),
             cardColor: Colors.white,
           );
+
+    final bool isMobile = MediaQuery.of(context).size.width < 600;
+    final Widget currentPage = _pageBuilders[_selectedIndex](
+      isMobile ? _scrollController : null,
+    );
 
     return Theme(
       data: theme,
@@ -105,15 +150,157 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         // **UPDATED: Using the external AppDrawer widget**
-        drawer: AppDrawer(
-          currentTheme: theme,
-          isDarkMode: _isDarkMode,
-          onToggleTheme: _toggleTheme, // Passing the state-modifying function
-          drawerItems: _drawerItems,
-          selectedIndex: _selectedIndex,
-          onItemTapped: _onItemTapped,
+        drawer: isMobile
+            ? null
+            : AppDrawer(
+                currentTheme: theme,
+                isDarkMode: _isDarkMode,
+                onToggleTheme:
+                    _toggleTheme, // Passing the state-modifying function
+                drawerItems: _drawerItems,
+                selectedIndex: _selectedIndex,
+                onItemTapped: _onItemTapped,
+              ),
+        body: isMobile
+            ? Stack(
+                children: [
+                  currentPage,
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      transform: Matrix4.translationValues(
+                        0,
+                        _isVisible ? 0 : 100,
+                        0,
+                      ),
+                      child: _buildCustomBottomBar(theme),
+                    ),
+                  ),
+                ],
+              )
+            : currentPage,
+      ),
+    );
+  }
+
+  // Widget to build the individual navigation icons
+  Widget _buildNavItem(IconData icon, int index, {bool isSelected = false}) {
+    return IconButton(
+      icon: Icon(
+        icon,
+        size: 28,
+        color: isSelected ? Colors.pink.shade700 : Colors.grey.shade600,
+      ),
+      onPressed: () {
+        setState(() {
+          _selectedIndex = index;
+        });
+      },
+    );
+  }
+
+  // Widget to build the central FAB
+  Widget _buildCentralFab() {
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.pink,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.pink.withValues(alpha: 0.5),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Center(
+        child: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white, size: 30),
+          onPressed: () {
+            // Handle the central close/action button tap
+          },
         ),
-        body: _pages[_selectedIndex],
+      ),
+    );
+  }
+
+  // Widget that creates the pill-shaped bottom navigation bar
+  Widget _buildCustomBottomBar(ThemeData theme) {
+    // The total height of the bar, including padding
+    const double barHeight = 70.0;
+
+    final List<IconData> leftIcons = [
+      Icons.home_outlined, // Home/Courses
+      Icons.person_outline, // Person/Schedule
+    ];
+
+    final List<IconData> rightIcons = [
+      Icons.favorite_border, // Heart/Progress
+      Icons.notifications_outlined, // Bell/Settings
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.only(
+        bottom: 24.0,
+      ), // Standard floating distance
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // The main pill-shaped container
+          Container(
+            height: barHeight,
+            width: MediaQuery.of(context).size.width * 0.85, // 85% width
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(barHeight / 2),
+              border: Border.all(
+                color: Colors.pink.shade100,
+                width: 2,
+              ), // Light pink border
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: <Widget>[
+                // Left side icons
+                _buildNavItem(leftIcons[0], 0, isSelected: _selectedIndex == 0),
+                _buildNavItem(leftIcons[1], 1, isSelected: _selectedIndex == 1),
+
+                // Spacer for the FAB
+                const SizedBox(width: 60),
+
+                // Right side icons
+                _buildNavItem(
+                  rightIcons[0],
+                  2,
+                  isSelected: _selectedIndex == 2,
+                ),
+                _buildNavItem(
+                  rightIcons[1],
+                  3,
+                  isSelected: _selectedIndex == 3,
+                ),
+              ],
+            ),
+          ),
+
+          // The central Floating Action Button (FAB) positioned on top of the pill
+          // Translate it up by half its height to center it vertically on the pill edge
+          Transform.translate(
+            offset: const Offset(0, -barHeight / 2 + 10),
+            child: _buildCentralFab(),
+          ),
+        ],
       ),
     );
   }
@@ -165,4 +352,3 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 }
-// ... (The rest of your main function for testing can remain here)

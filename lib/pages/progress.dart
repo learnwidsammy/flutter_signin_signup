@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class ProgressPage extends StatelessWidget {
-  const ProgressPage({super.key});
+  final ScrollController? scrollController;
+
+  const ProgressPage({super.key, this.scrollController});
 
   @override
   Widget build(BuildContext context) {

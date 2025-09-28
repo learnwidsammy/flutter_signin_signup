@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
+  final ScrollController? scrollController;
+
+  const SettingsPage({super.key, this.scrollController});
 
   @override
   Widget build(BuildContext context) {
